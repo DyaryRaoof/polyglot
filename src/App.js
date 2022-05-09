@@ -62,43 +62,38 @@ function App() {
   }, []);
 
   const handleVideoInputChange = (e) => {
+    localStorage.clear();
     //load only a portion of video duration from file
     const video = e.target.files[0];
     const objectURL = URL.createObjectURL(video);
     videoRef.current.src = objectURL;
   };
 
-  const handleSubtitleFrenchInput = (e) => {
+  const handleSubInput = (e, fileName) => {
     const sub = e.target.files[0];
     const reader = new FileReader();
     reader.readAsText(sub);
     reader.onload = () => {
-      localStorage.setItem('sub', JSON.stringify(reader.result));
+      localStorage.setItem(fileName, JSON.stringify(reader.result));
     };
+  };
+
+  const handleSubtitleFrenchInput = (e) => {
+    handleSubInput(e, 'sub');
   };
 
   const handleSubtitleEnglishInput = (e) => {
-    const sub = e.target.files[0];
-    const reader = new FileReader();
-    reader.readAsText(sub);
-    reader.onload = () => {
-      localStorage.setItem('sub-eng', JSON.stringify(reader.result));
-    };
+    handleSubInput(e, 'sub-eng');
   };
 
   const handleInventoryInput = (e) => {
-    const inventory = e.target.files[0];
-    const reader = new FileReader();
-    reader.readAsText(inventory);
-    reader.onload = () => {
-      localStorage.setItem('inventory', JSON.stringify(reader.result));
-    };
+    handleSubInput(e, 'inventory');
   };
 
   async function getNewFileHandle() {
     const options = {
       suggestedName: 'inventory',
-      startIn: 'documents',
+      startIn: 'Desktop',
       types: [
         {
           description: 'Text Files',
@@ -127,15 +122,39 @@ function App() {
     inventoryNow = JSON.parse(localInventory).split('\n');
   }
 
+  const handleSaveSubtitle = () => {
+    const currentTime = localStorage.getItem('currentTime');
+    const saveText = `${currentTime}-->fr: ${displaySub}-->eng: ${displaySubEng}`;
+
+    const inventory = JSON.parse(localStorage.getItem('inventory'));
+    let newInventory = null;
+
+    if (inventory) {
+      const inventoryArray = inventory.split('\n');
+      inventoryArray.push(saveText);
+      newInventory = inventoryArray.join('\n');
+    } else {
+      newInventory = saveText;
+    }
+
+    getNewFileHandle().then((handle) => {
+      writeFile(handle, newInventory).then(() => {
+        console.log('file written');
+        localStorage.setItem('inventory', JSON.stringify(newInventory));
+      });
+    });
+  };
+
   return (
     <div style={{ display: 'flex' }}>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, height: '100vh', overflow: 'scroll', marginLeft: '30px', paddingRight: '20px' }}>
         {inventoryNow.map((item, index) => {
           if (item === ' ') {
             return null;
           }
           return (
             <div key={index} className={item.includes('eng: ') ? 'eng-button' : ''}>
+              <span style={{ color: 'red', fontSize: '30px' }}>{index % 3 !== 0 ? index : ''}</span>
               <button
                 style={{ pointer: 'cursor' }}
                 key={item}
@@ -150,45 +169,36 @@ function App() {
         })}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', flex: 5 }}>
-        <h3>Choose Video</h3>
-        <input type="file" onChange={(e) => handleVideoInputChange(e)} style={{ margin: '20px' }}></input>
-        <h3>Choose French Sub</h3>
-        <input type="file" onChange={(e) => handleSubtitleFrenchInput(e)} style={{ margin: '20px' }}></input>
-        <h3>Choose English Sub</h3>
-        <input type="file" onChange={(e) => handleSubtitleEnglishInput(e)} style={{ margin: '20px' }}></input>
-        <h3>Choose Inventory File</h3>
-        <input type="file" onChange={(e) => handleInventoryInput(e)} style={{ margin: '20px' }}></input>
-        <video controls width="500px" ref={videoRef} preload={false}>
+        <video controls width="100%" ref={videoRef} preload={false}>
           <source src={smaple} type="video/mp4"></source>
         </video>
-        <h1>{displaySub}</h1>
-        <h1>{displaySubEng}</h1>
+        <h1 className="trans fr">{displaySub}</h1>
+        <h1 className="trans eng">{displaySubEng}</h1>
         <button
+          style={{ color: 'orange', padding: '20px', fontSize: '20px', border: '1px solid orange' }}
           onClick={() => {
-            const currentTime = localStorage.getItem('currentTime');
-            const saveText = `${currentTime}-->fr: ${displaySub}-->eng: ${displaySubEng}`;
-
-            const inventory = JSON.parse(localStorage.getItem('inventory'));
-            let newInventory = null;
-
-            if (inventory) {
-              const inventoryArray = inventory.split('\n');
-              inventoryArray.push(saveText);
-              newInventory = inventoryArray.join('\n');
-            } else {
-              newInventory = saveText;
-            }
-
-            getNewFileHandle().then((handle) => {
-              writeFile(handle, newInventory).then(() => {
-                console.log('file written');
-                localStorage.setItem('inventory', JSON.stringify(newInventory));
-              });
-            });
+            handleSaveSubtitle();
           }}
         >
           Save To Inventory
         </button>
+
+        <div style={{ display: 'flex' }}>
+          <h3>Choose Video</h3>
+          <input type="file" onChange={(e) => handleVideoInputChange(e)} style={{ margin: '20px' }}></input>
+        </div>
+        <div style={{ display: 'flex' }}>
+          <h3>Choose French Sub</h3>
+          <input type="file" onChange={(e) => handleSubtitleFrenchInput(e)} style={{ margin: '20px' }}></input>
+        </div>
+        <div style={{ display: 'flex' }}>
+          <h3>Choose English Sub</h3>
+          <input type="file" onChange={(e) => handleSubtitleEnglishInput(e)} style={{ margin: '20px' }}></input>
+        </div>
+        <div style={{ display: 'flex' }}>
+          <h3>Choose Inventory File</h3>
+          <input type="file" onChange={(e) => handleInventoryInput(e)} style={{ margin: '20px' }}></input>
+        </div>
       </div>
     </div>
   );
