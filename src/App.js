@@ -3,6 +3,7 @@ import smaple from './video.mp4';
 import { useEffect, useState } from 'react';
 import text from './intouchables.srt';
 import engText from './intouchables-eng.srt';
+import './App.css';
 
 function App() {
   const videoRef = useRef();
@@ -26,9 +27,7 @@ function App() {
       const indexOfLine = textArray.indexOf(currentTimeLine);
 
       const sub = `${textArray[indexOfLine + 1]} \n ${textArray[indexOfLine + 2]}`;
-      console.log(sub, 'sub');
       if (currentTimeLine) {
-        console.log(currentTimeLine);
         const currentSeconds = convertToSeconds(currentTimeLine.split('-->')[0]);
         localStorage.setItem('currentTime', currentSeconds);
         if (currentTime > currentSeconds && displaySub !== sub) {
@@ -121,26 +120,36 @@ function App() {
     // Close the file and write the contents to disk.
     await writable.close();
   }
-  const inventoryNow = JSON.parse(localStorage.getItem('inventory')).split('\n');
+
+  const localInventory = localStorage.getItem('inventory');
+  let inventoryNow = [];
+  if (localInventory) {
+    inventoryNow = JSON.parse(localInventory).split('\n');
+  }
 
   return (
-    <div>
-      <div>
-        {inventoryNow.map((item) => (
-          <div>
-            <button
-              style={{ pointer: 'cursor' }}
-              key={item}
-              onClick={() => {
-                videoRef.current.currentTime = parseFloat(item.split('-->')[0]);
-              }}
-            >
-              {item}
-            </button>
-          </div>
-        ))}
+    <div style={{ display: 'flex' }}>
+      <div style={{ flex: 1 }}>
+        {inventoryNow.map((item, index) => {
+          if (item === ' ') {
+            return null;
+          }
+          return (
+            <div key={index} className={item.includes('eng: ') ? 'eng-button' : ''}>
+              <button
+                style={{ pointer: 'cursor' }}
+                key={item}
+                onClick={() => {
+                  videoRef.current.currentTime = parseFloat(item.split('-->')[0]);
+                }}
+              >
+                <div className={item.includes('fr: ') ? 'fr trans' : 'eng trans'}>{`${item.includes('fr: ') ? item.split('fr: ')[1] : ''} ${item.includes('eng: ') ? item.split('eng: ')[1] : ''}`}</div>
+              </button>
+            </div>
+          );
+        })}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', flex: 5 }}>
         <h3>Choose Video</h3>
         <input type="file" onChange={(e) => handleVideoInputChange(e)} style={{ margin: '20px' }}></input>
         <h3>Choose French Sub</h3>
@@ -169,8 +178,6 @@ function App() {
             } else {
               newInventory = saveText;
             }
-
-            console.log(newInventory, 'new inventory');
 
             getNewFileHandle().then((handle) => {
               writeFile(handle, newInventory).then(() => {

@@ -1,0 +1,18 @@
+.fr {
+    color: black;
+}
+
+.eng {
+
+    color: blue;
+}
+
+.trans {
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 300;
+}
+
+.eng-button {
+    margin-bottom: 20px;
+}
