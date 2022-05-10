@@ -9,6 +9,7 @@ function App() {
   const videoRef = useRef();
   const [displaySub, setDisplaySub] = useState('');
   const [displaySubEng, setDisplayEngSub] = useState('');
+  const [subtitles, setSubtitles] = useState([]);
 
   const convertToSeconds = (time) => {
     const hour = parseInt(time.split(':')[0]);
@@ -38,6 +39,14 @@ function App() {
     }
   };
 
+  const getLocalInventory = () => {
+    const localInventory = localStorage.getItem('inventory');
+    if (localInventory) {
+      const inventoryNow = JSON.parse(localInventory).split('\n');
+      setSubtitles(inventoryNow);
+    }
+  };
+
   useEffect(() => {
     fetch(text)
       .then((r) => r.text())
@@ -59,10 +68,14 @@ function App() {
       makeSubTextReady(text, currentTime, false);
       makeSubTextReady(textEng, currentTime, true);
     };
+
+    getLocalInventory();
   }, []);
 
   const handleVideoInputChange = (e) => {
     localStorage.clear();
+    setSubtitles([]);
+    getLocalInventory();
     //load only a portion of video duration from file
     const video = e.target.files[0];
     const objectURL = URL.createObjectURL(video);
@@ -93,7 +106,7 @@ function App() {
   async function getNewFileHandle() {
     const options = {
       suggestedName: 'inventory',
-      startIn: 'Desktop',
+      startIn: 'desktop',
       types: [
         {
           description: 'Text Files',
@@ -108,18 +121,9 @@ function App() {
   }
 
   async function writeFile(fileHandle, contents) {
-    // Create a FileSystemWritableFileStream to write to.
     const writable = await fileHandle.createWritable();
-    // Write the contents of the file to the stream.
     await writable.write(contents);
-    // Close the file and write the contents to disk.
     await writable.close();
-  }
-
-  const localInventory = localStorage.getItem('inventory');
-  let inventoryNow = [];
-  if (localInventory) {
-    inventoryNow = JSON.parse(localInventory).split('\n');
   }
 
   const handleSaveSubtitle = () => {
@@ -142,19 +146,20 @@ function App() {
         console.log('file written');
         localStorage.setItem('inventory', JSON.stringify(newInventory));
       });
+      getLocalInventory();
     });
   };
 
   return (
     <div style={{ display: 'flex' }}>
       <div style={{ flex: 1, height: '100vh', overflow: 'scroll', marginLeft: '30px', paddingRight: '20px' }}>
-        {inventoryNow.map((item, index) => {
+        {subtitles.map((item, index) => {
           if (item === ' ') {
             return null;
           }
           return (
             <div key={index} className={item.includes('eng: ') ? 'eng-button' : ''}>
-              <span style={{ color: 'red', fontSize: '30px' }}>{index % 3 !== 0 ? index : ''}</span>
+              <div style={{ color: 'red', fontSize: '30px' }}>{index}</div>
               <button
                 style={{ pointer: 'cursor' }}
                 key={item}
